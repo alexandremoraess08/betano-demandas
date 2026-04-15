@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BETANO DEALS — Sistema</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+<!-- ═══════════════════════════════════════════
+     🔥 FIREBASE CONFIG
+     Substitua os valores abaixo pelos do seu projeto Firebase.
+     Veja o guia no final do arquivo (comentário <!-- GUIA FIREBASE -->)
+════════════════════════════════════════════ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, get, push, remove, onValue }
+    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  // ▼▼▼ COLE AQUI AS SUAS CREDENCIAIS FIREBASE ▼▼▼
+  const firebaseConfig = {
+    apiKey:            "AIzaSyCPrf-C-Nk-ZiYtYE_UzyApFFmXFoMsKH4",
+    authDomain:        "demandas-betano.firebaseapp.com",
+    databaseURL:       "https://demandas-betano-default-rtdb.firebaseio.com",
+    projectId:         "demandas-betano",
+    storageBucket:     "demandas-betano.firebasestorage.app",
+    messagingSenderId: "28540035326",
+    appId:             "1:28540035326:web:445a751b47e639af6545af"
+  };
+  // ▲▲▲ FIM DAS CREDENCIAIS ▲▲▲
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getDatabase(app);
+
+  // Expõe para o código global
+  window._db     = db;
+  window._ref    = ref;
+  window._set    = set;
+  window._get    = get;
+  window._push   = push;
+  window._remove = remove;
+  window._onValue= onValue;
+  window._fbReady= true;
+  document.dispatchEvent(new Event('firebase-ready'));
+</script>
+
+<style>
+:root{
+  --red:#E8003D;--red2:#b5002f;
+  --bg:#080808;--s1:#0f0f0f;--s2:#181818;--s3:#222;
+  --border:#2c2c2c;--border2:#3a3a3a;
+  --text:#efefef;--muted:#666;--muted2:#444;
+  --green:#00d67a;--yellow:#f5c400;--orange:#ff6b1a;--blue:#3b9eff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'IBM Plex Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+button{cursor:pointer;font-family:inherit}
+input,select,textarea{font-family:inherit}
+
+/* SCREENS */
+.screen{display:none;min-height:100vh;flex-direction:column}
+.screen.active{display:flex}
+
+/* ── LOADING ── */
+#screen-loading{align-items:center;justify-content:center;background:var(--bg)}
+.spin{width:36px;height:36px;border:3px solid var(--border);border-top-color:var(--red);
+  border-radius:50%;animation:spin .7s linear infinite;margin-bottom:16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-txt{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);letter-spacing:2px}
+
+/* ── LOGIN ── */
+#screen-login{align-items:center;justify-content:center;position:relative;overflow:hidden}
+.login-grid{position:absolute;inset:0;
+  background-image:linear-gradient(var(--s2) 1px,transparent 1px),linear-gradient(90deg,var(--s2) 1px,transparent 1px);
+  background-size:48px 48px;opacity:.4}
+.login-glow{position:absolute;top:50%;left:50%;width:600px;height:600px;
+  background:radial-gradient(circle,rgba(232,0,61,.12) 0%,transparent 70%);
+  transform:translate(-50%,-50%);pointer-events:none}
+.login-box{position:relative;z-index:2;width:100%;max-width:420px;padding:0 20px}
+.login-logo{font-family:'Bebas Neue',sans-serif;font-size:52px;letter-spacing:6px;color:var(--red);text-align:center;margin-bottom:4px}
+.login-sub{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:3px;color:var(--muted);text-align:center;margin-bottom:40px}
+.login-card{background:var(--s1);border:1px solid var(--border);border-radius:6px;padding:32px}
+.login-lbl{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+.login-sel,.login-inp{width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);
+  padding:12px 14px;border-radius:4px;font-size:14px;outline:none;transition:border-color .2s;margin-bottom:16px;appearance:none}
+.login-sel:focus,.login-inp:focus{border-color:var(--red)}
+.login-btn{width:100%;background:var(--red);border:none;color:#fff;font-family:'IBM Plex Mono',monospace;
+  font-size:13px;letter-spacing:2px;padding:14px;border-radius:4px;text-transform:uppercase;transition:background .2s;margin-top:4px}
+.login-btn:hover{background:var(--red2)}
+.login-err{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--red);margin-top:12px;text-align:center;display:none}
+
+/* ── TOPBAR ── */
+.topbar{background:var(--s1);border-bottom:1px solid var(--border);padding:0 28px;height:56px;
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;position:sticky;top:0;z-index:50}
+.topbar-logo{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:3px;color:var(--red)}
+.topbar-logo span{color:var(--muted);font-size:14px;letter-spacing:2px;margin-left:8px}
+.topbar-right{display:flex;align-items:center;gap:16px}
+.topbar-user{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+.topbar-user b{color:var(--text)}
+.logout-btn{background:none;border:1px solid var(--border2);color:var(--muted);
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;padding:6px 12px;border-radius:3px;transition:all .2s}
+.logout-btn:hover{border-color:var(--red);color:var(--red)}
+
+/* ── LAYOUT ── */
+.app-layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:200px;flex-shrink:0;background:var(--s1);border-right:1px solid var(--border);padding:20px 0;display:flex;flex-direction:column;gap:2px}
+.sidebar-item{background:none;border:none;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;
+  letter-spacing:1px;text-align:left;padding:10px 20px;transition:all .2s;border-left:2px solid transparent;text-transform:uppercase}
+.sidebar-item:hover{color:var(--text);background:var(--s2)}
+.sidebar-item.active{color:var(--red);border-left-color:var(--red);background:rgba(232,0,61,.06)}
+.sidebar-sep{height:1px;background:var(--border);margin:10px 16px}
+.main-content{flex:1;overflow-y:auto;padding:28px}
+
+/* ── INF PANEL ── */
+.inf-hero{background:linear-gradient(135deg,var(--s2),var(--s1));border:1px solid var(--border);border-radius:6px;
+  padding:28px 32px;margin-bottom:24px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:16px}
+.inf-hero-name{font-family:'Bebas Neue',sans-serif;font-size:64px;letter-spacing:4px;color:var(--red);line-height:1}
+.inf-hero-deal{display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.deal-tag{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 14px;border-radius:3px;border:1px solid}
+.deal-tag.fixo{color:var(--yellow);border-color:var(--yellow)}
+.deal-tag.cpa{color:var(--green);border-color:var(--green)}
+
+.stats-row{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap}
+.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:5px;padding:16px 20px;flex:1;min-width:120px}
+.stat-card .lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+.stat-card .val{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;line-height:1}
+.val.red{color:var(--red)}.val.green{color:var(--green)}.val.yellow{color:var(--yellow)}.val.blue{color:var(--blue)}
+
+.obrig-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:24px}
+.obrig-card{background:var(--s1);border:1px solid var(--border);border-radius:5px;padding:20px}
+.obrig-card-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.obrig-type{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1px;text-transform:uppercase;font-weight:600}
+.obrig-target{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted)}
+.big-count{font-family:'Bebas Neue',sans-serif;font-size:48px;letter-spacing:2px;line-height:1;margin-bottom:10px}
+.bar-wrap{height:5px;background:var(--border);border-radius:3px;margin-bottom:14px}
+.bar-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.reg-btn{width:100%;background:var(--s2);border:1px solid var(--border2);color:var(--text);
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1.5px;padding:9px;border-radius:3px;text-transform:uppercase;transition:all .2s}
+.reg-btn:hover{background:var(--red);border-color:var(--red);color:#fff}
+
+/* TABLE */
+.section-head{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:14px}
+.sub-table{width:100%;border-collapse:collapse}
+.sub-table th{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;padding:8px 12px;border-bottom:1px solid var(--border);text-align:left}
+.sub-table td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.sub-table tr:last-child td{border-bottom:none}
+.sub-table tr:hover td{background:var(--s2)}
+.type-badge{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:3px 8px;border-radius:2px;border:1px solid;text-transform:uppercase;white-space:nowrap}
+.link-cell{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--blue);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.link-cell a{color:var(--blue)}.link-cell a:hover{text-decoration:underline}
+.date-cell{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);white-space:nowrap}
+.del-btn{background:none;border:none;color:var(--muted2);font-size:14px;padding:2px 6px;border-radius:2px;transition:color .2s}
+.del-btn:hover{color:var(--red)}
+.img-thumb{width:32px;height:32px;object-fit:cover;border-radius:3px;cursor:pointer;border:1px solid var(--border)}
+.empty-sub{text-align:center;padding:40px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted)}
+
+/* ── ADMIN ── */
+.page-title{font-family:'Bebas Neue',sans-serif;font-size:40px;letter-spacing:3px;color:var(--text);margin-bottom:6px}
+.page-sub{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);margin-bottom:28px}
+.admin-kpis{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:28px}
+.kpi-card{background:var(--s1);border:1px solid var(--border);border-radius:5px;padding:18px 20px}
+.kpi-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px}
+.kpi-val{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;line-height:1}
+
+.proj-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+.proj-card{background:var(--s1);border:1px solid var(--border);border-radius:5px;overflow:hidden;transition:border-color .2s,transform .15s;cursor:pointer}
+.proj-card:hover{border-color:var(--red);transform:translateY(-2px)}
+.proj-card-top{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.proj-name{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px}
+.proj-fixo{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--yellow)}
+.proj-body{padding:16px 20px}
+.mini-bars{display:flex;flex-direction:column;gap:8px}
+.mini-bar-row{display:flex;align-items:center;gap:8px}
+.mini-bar-lbl{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);width:70px;flex-shrink:0;letter-spacing:.5px;text-transform:uppercase}
+.mini-bar-track{flex:1;height:3px;background:var(--border);border-radius:2px}
+.mini-bar-fill{height:100%;border-radius:2px;transition:width .5s}
+.mini-bar-count{font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--muted);min-width:44px;text-align:right}
+.proj-footer{padding:10px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap}
+.proj-chip{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:2px 8px;border-radius:2px;border:1px solid var(--border);color:var(--muted)}
+.proj-chip b{color:var(--green)}
+
+.filter-bar{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center}
+.filter-select{background:var(--s2);border:1px solid var(--border);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:8px 12px;border-radius:3px;outline:none;transition:border-color .2s}
+.filter-select:focus{border-color:var(--red)}
+.export-btn{background:var(--s2);border:1px solid var(--border2);color:var(--text);font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;padding:8px 16px;border-radius:3px;text-transform:uppercase;transition:all .2s;margin-left:auto}
+.export-btn:hover{background:var(--green);border-color:var(--green);color:#000}
+
+.manage-table{width:100%;border-collapse:collapse;font-size:13px}
+.manage-table th{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;padding:10px 14px;border-bottom:1px solid var(--border);text-align:left}
+.manage-table td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+.manage-table tr:hover td{background:var(--s2)}
+.edit-btn{background:none;border:1px solid var(--border2);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;padding:4px 10px;border-radius:2px;text-transform:uppercase;transition:all .2s;margin-right:6px}
+.edit-btn:hover{border-color:var(--blue);color:var(--blue)}
+.pw-btn{background:none;border:1px solid var(--border2);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1px;padding:4px 10px;border-radius:2px;text-transform:uppercase;transition:all .2s}
+.pw-btn:hover{border-color:var(--yellow);color:var(--yellow)}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--s1);border:1px solid var(--border);border-radius:6px;padding:28px;width:100%;max-width:480px;position:relative;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;color:var(--red);margin-bottom:20px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:1px;color:var(--muted);text-transform:uppercase;margin-bottom:6px}
+.fg input,.fg select,.fg textarea{width:100%;background:var(--s2);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:3px;font-size:13px;outline:none;transition:border-color .2s}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--red)}
+.fg textarea{resize:vertical;min-height:64px}
+.modal-actions{display:flex;gap:10px;margin-top:20px}
+.btn-ok{flex:1;background:var(--red);border:none;color:#fff;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1.5px;padding:12px;border-radius:3px;text-transform:uppercase;transition:background .2s}
+.btn-ok:hover{background:var(--red2)}
+.btn-cancel{background:none;border:1px solid var(--border);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:11px;padding:12px 20px;border-radius:3px;transition:all .2s}
+.btn-cancel:hover{border-color:var(--text);color:var(--text)}
+.img-preview{max-width:100%;max-height:110px;object-fit:contain;border-radius:3px;border:1px solid var(--border);margin-top:8px;display:none}
+
+/* LIGHTBOX */
+.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:300;align-items:center;justify-content:center;cursor:pointer}
+.lightbox.open{display:flex}
+.lightbox img{max-width:90vw;max-height:90vh;object-fit:contain;border-radius:4px}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;z-index:400;background:var(--green);color:#000;
+  font-family:'IBM Plex Mono',monospace;font-size:12px;padding:12px 20px;border-radius:4px;
+  transform:translateY(80px);opacity:0;transition:all .3s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.error{background:var(--red);color:#fff}
+
+/* SYNC INDICATOR */
+.sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.sync-dot.offline{background:var(--red);animation:none}
+
+@media(max-width:640px){.sidebar{display:none}.inf-hero-name{font-size:40px}}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="screen active" id="screen-loading">
+  <div class="spin"></div>
+  <div class="load-txt">CONECTANDO AO FIREBASE...</div>
+</div>
+
+<!-- LOGIN -->
+<div class="screen" id="screen-login">
+  <div class="login-grid"></div>
+  <div class="login-glow"></div>
+  <div class="login-box">
+    <div class="login-logo">BETANO</div>
+    <div class="login-sub">Deal Management System</div>
+    <div class="login-card">
+      <label class="login-lbl">Usuário</label>
+      <select class="login-sel" id="loginUser">
+        <option value="">— Selecione —</option>
+        <option value="admin">👑 Administrador</option>
+        <option value="camillo">Camillo</option>
+        <option value="nascimento">Nascimento</option>
+        <option value="helder">Hélder</option>
+        <option value="luisa">Luisa</option>
+        <option value="nalanda">Nalanda</option>
+        <option value="herculano">Herculano</option>
+        <option value="raquel">Raquel</option>
+        <option value="rei">Rei</option>
+        <option value="md">MD</option>
+        <option value="neto">Neto</option>
+        <option value="bruno">Bruno</option>
+        <option value="luizroyal">Luiz Royal</option>
+        <option value="lucaneta">Lucaneta</option>
+        <option value="dandara">Dandara</option>
+      </select>
+      <label class="login-lbl">Senha</label>
+      <input class="login-inp" type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+      <button class="login-btn" onclick="doLogin()">ENTRAR</button>
+      <div class="login-err" id="loginError">Usuário ou senha incorretos.</div>
+    </div>
+  </div>
+</div>
+
+<!-- INFLUENCER -->
+<div class="screen" id="screen-inf">
+  <div class="topbar">
+    <div class="topbar-logo">BETANO <span>// DEALS</span></div>
+    <div class="topbar-right">
+      <span><span class="sync-dot" id="syncDotInf"></span></span>
+      <div class="topbar-user">Logado como <b id="inf-username"></b></div>
+      <button class="logout-btn" onclick="doLogout()">SAIR</button>
+    </div>
+  </div>
+  <div class="main-content" id="inf-main" style="max-width:1100px;margin:0 auto"></div>
+</div>
+
+<!-- ADMIN -->
+<div class="screen" id="screen-admin">
+  <div class="topbar">
+    <div class="topbar-logo">BETANO <span>// ADMIN</span></div>
+    <div class="topbar-right">
+      <span><span class="sync-dot" id="syncDotAdmin"></span></span>
+      <div class="topbar-user">👑 <b>Administrador</b></div>
+      <button class="logout-btn" onclick="doLogout()">SAIR</button>
+    </div>
+  </div>
+  <div class="app-layout">
+    <div class="sidebar">
+      <button class="sidebar-item active" onclick="adminTab(this,'projetos')">📊 Projetos</button>
+      <button class="sidebar-item" onclick="adminTab(this,'entregas')">📋 Entregas</button>
+      <div class="sidebar-sep"></div>
+      <button class="sidebar-item" onclick="adminTab(this,'influenciadores')">👤 Influenciadores</button>
+      <button class="sidebar-item" onclick="adminTab(this,'relatorios')">📥 Relatórios</button>
+    </div>
+    <div class="main-content" id="admin-main"></div>
+  </div>
+</div>
+
+<!-- MODAL: REGISTRAR -->
+<div class="modal-overlay" id="modalReg">
+  <div class="modal">
+    <div class="modal-title" id="modalRegTitle">REGISTRAR ENTREGA</div>
+    <div class="fg">
+      <label>Tipo</label>
+      <select id="mType">
+        <option value="story">Story</option>
+        <option value="reel">Reel</option>
+        <option value="whatsapp">WhatsApp</option>
+        <option value="telegram">Telegram</option>
+      </select>
+    </div>
+    <div class="fg"><label>Link da Publicação</label><input type="url" id="mLink" placeholder="https://..."></div>
+    <div class="fg">
+      <label>Print / Screenshot</label>
+      <input type="file" id="mImg" accept="image/*" onchange="previewModalImg()">
+      <img class="img-preview" id="mImgPreview">
+    </div>
+    <div class="fg"><label>Observações (opcional)</label><textarea id="mNote" placeholder="Ex: story com swipe up..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modalReg')">CANCELAR</button>
+      <button class="btn-ok" onclick="saveEntry()">REGISTRAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDITAR INFLUENCIADOR -->
+<div class="modal-overlay" id="modalEdit">
+  <div class="modal">
+    <div class="modal-title">EDITAR INFLUENCIADOR</div>
+    <div class="fg"><label>Nome</label><input id="eName" type="text"></div>
+    <div class="fg"><label>Fixo (R$)</label><input id="eFixo" type="number"></div>
+    <div class="fg"><label>CPA (R$)</label><input id="eCpa" type="number"></div>
+    <div class="fg"><label>Baseline (R$)</label><input id="eBase" type="number"></div>
+    <div class="fg"><label>Trigger (R$)</label><input id="eTrig" type="number"></div>
+    <div style="font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin:4px 0 10px">OBRIGAÇÕES MENSAIS</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="fg"><label>Stories</label><input id="eStory" type="number"></div>
+      <div class="fg"><label>Reels</label><input id="eReel" type="number"></div>
+      <div class="fg"><label>WhatsApp</label><input id="eWa" type="number"></div>
+      <div class="fg"><label>Telegram</label><input id="eTg" type="number"></div>
+    </div>
+    <div class="fg"><label>Nova Senha (deixe vazio para não alterar)</label><input id="ePass" type="password" placeholder="••••••••"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal('modalEdit')">CANCELAR</button>
+      <button class="btn-ok" onclick="saveEdit()">SALVAR</button>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="this.classList.remove('open')">
+  <img id="lightboxImg">
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════
+   DADOS PADRÃO (inicialização Firebase)
+══════════════════════════════════════ */
+const DEFAULT_INFLUENCERS = {
+  camillo:   {name:'Camillo',   fixo:300000,cpa:200,baseline:50,trigger:100,obligations:{story:48,reel:8,whatsapp:60,telegram:90}},
+  nascimento:{name:'Nascimento',fixo:300000,cpa:200,baseline:50,trigger:100,obligations:{story:72,reel:15,whatsapp:90,telegram:60}},
+  helder:    {name:'Hélder',    fixo:200000,cpa:200,baseline:50,trigger:100,obligations:{story:72,reel:15,whatsapp:90,telegram:60}},
+  luisa:     {name:'Luisa',     fixo:200000,cpa:200,baseline:50,trigger:100,obligations:{story:72,reel:15,whatsapp:90,telegram:60}},
+  nalanda:   {name:'Nalanda',   fixo:150000,cpa:200,baseline:50,trigger:100,obligations:{story:72,reel:15,whatsapp:90,telegram:60}},
+  herculano: {name:'Herculano', fixo:100000,cpa:200,baseline:50,trigger:100,obligations:{story:48,reel:8,whatsapp:60,telegram:90}},
+  raquel:    {name:'Raquel',    fixo:60000, cpa:200,baseline:50,trigger:100,obligations:{story:48,reel:8,whatsapp:60,telegram:90}},
+  rei:       {name:'Rei',       fixo:100000,cpa:200,baseline:50,trigger:100,obligations:{story:36,reel:6,whatsapp:150,telegram:90}},
+  md:        {name:'MD',        fixo:100000,cpa:200,baseline:50,trigger:100,obligations:{story:48,reel:8,whatsapp:60,telegram:90}},
+  neto:      {name:'Neto',      fixo:150000,cpa:200,baseline:50,trigger:100,obligations:{story:36,reel:6,whatsapp:150,telegram:90}},
+  bruno:     {name:'Bruno',     fixo:150000,cpa:200,baseline:50,trigger:100,obligations:{story:36,reel:6,whatsapp:150,telegram:90}},
+  luizroyal: {name:'Luiz Royal',fixo:100000,cpa:200,baseline:50,trigger:100,obligations:{story:36,reel:6,whatsapp:150,telegram:90}},
+  lucaneta:  {name:'Lucaneta',  fixo:null,  cpa:200,baseline:50,trigger:100,obligations:{story:36,reel:15,whatsapp:0,telegram:0}},
+  dandara:   {name:'Dandara',   fixo:null,  cpa:200,baseline:50,trigger:100,obligations:{story:36,reel:15,whatsapp:0,telegram:0}},
+};
+const DEFAULT_PASSWORDS = {
+  admin:'admin123',camillo:'camillo123',nascimento:'nascimento123',
+  helder:'helder123',luisa:'luisa123',nalanda:'nalanda123',
+  herculano:'herculano123',raquel:'raquel123',rei:'rei123',
+  md:'md123',neto:'neto123',bruno:'bruno123',
+  luizroyal:'luizroyal123',lucaneta:'lucaneta123',dandara:'dandara123'
+};
+
+/* ══════════════════════════════════════
+   STATE
+══════════════════════════════════════ */
+const TYPE_LABEL={story:'Stories',reel:'Reels',whatsapp:'WhatsApp',telegram:'Telegram'};
+const TYPE_COLOR={story:'#E8003D',reel:'#f5c400',whatsapp:'#25d366',telegram:'#2aabee'};
+
+let currentUser = null;
+let currentAdminTab = 'projetos';
+let editingId = null;
+let regType = null;
+
+// Live cache (populated from Firebase realtime listener)
+let INFLUENCERS = {};
+let PASSWORDS   = {};
+let SUBMISSIONS = {}; // { infId: { fbKey: entryObj } }
+
+/* ══════════════════════════════════════
+   FIREBASE INIT
+══════════════════════════════════════ */
+document.addEventListener('firebase-ready', async () => {
+  const db = window._db;
+
+  // Check if data already seeded
+  const snap = await window._get(window._ref(db, 'meta/seeded'));
+  if (!snap.exists()) {
+    // First time: seed influencers & passwords
+    await window._set(window._ref(db, 'influencers'), DEFAULT_INFLUENCERS);
+    await window._set(window._ref(db, 'passwords'),   DEFAULT_PASSWORDS);
+    await window._set(window._ref(db, 'meta/seeded'), true);
+  }
+
+  // Realtime listeners
+  window._onValue(window._ref(db, 'influencers'), snap => {
+    INFLUENCERS = snap.val() || {};
+    if (currentUser && currentUser !== 'admin') renderInfPanel();
+    if (currentUser === 'admin') renderAdminTab(currentAdminTab);
+  });
+
+  window._onValue(window._ref(db, 'passwords'), snap => {
+    PASSWORDS = snap.val() || {};
+  });
+
+  window._onValue(window._ref(db, 'submissions'), snap => {
+    SUBMISSIONS = snap.val() || {};
+    if (currentUser && currentUser !== 'admin') renderInfPanel();
+    if (currentUser === 'admin') renderAdminTab(currentAdminTab);
+  });
+
+  // Show login
+  showScreen('login');
+});
+
+/* ══════════════════════════════════════
+   HELPERS
+══════════════════════════════════════ */
+function fmtMoney(v){
+  if(!v&&v!==0)return'—';
+  return v>=1000?`R$ ${(v/1000).toFixed(0)} MIL`:`R$ ${v}`;
+}
+function fmtPct(d,t){return t?Math.round((d/t)*100):0;}
+function barColor(p){return p>=100?'#00d67a':p>=60?'#ff6b1a':'#E8003D';}
+function nowStr(){
+  const n=new Date();
+  return`${String(n.getDate()).padStart(2,'0')}/${String(n.getMonth()+1).padStart(2,'0')} ${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+}
+function getSubs(id){ return Object.values(SUBMISSIONS[id]||{}); }
+function getSubEntries(id){ return Object.entries(SUBMISSIONS[id]||{}); }
+function getCounts(id){
+  const c={story:0,reel:0,whatsapp:0,telegram:0};
+  getSubs(id).forEach(s=>{if(c[s.type]!==undefined)c[s.type]++;});
+  return c;
+}
+function showToast(msg,isErr=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast'+(isErr?' error':'');
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2800);
+}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+/* ══════════════════════════════════════
+   AUTH
+══════════════════════════════════════ */
+function doLogin(){
+  const u=document.getElementById('loginUser').value;
+  const p=document.getElementById('loginPass').value;
+  const err=document.getElementById('loginError');
+  if(!u){err.style.display='block';err.textContent='Selecione um usuário.';return;}
+  if(PASSWORDS[u]!==p){err.style.display='block';err.textContent='Senha incorreta.';return;}
+  err.style.display='none';
+  currentUser=u;
+  document.getElementById('loginPass').value='';
+  if(u==='admin'){showScreen('admin');renderAdminTab('projetos');}
+  else{showScreen('inf');renderInfPanel();}
+}
+function doLogout(){
+  currentUser=null;
+  showScreen('login');
+  document.getElementById('loginUser').value='';
+}
+function showScreen(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+name).classList.add('active');
+}
+
+/* ══════════════════════════════════════
+   INFLUENCER PANEL
+══════════════════════════════════════ */
+function renderInfPanel(){
+  const id=currentUser;
+  const inf=INFLUENCERS[id];
+  if(!inf)return;
+  document.getElementById('inf-username').textContent=inf.name;
+  const counts=getCounts(id);
+  const subs=getSubs(id);
+  const entries=getSubEntries(id);
+  const totalDone=Object.values(counts).reduce((a,b)=>a+b,0);
+  const totalTarget=Object.values(inf.obligations).reduce((a,b)=>a+b,0);
+  const pct=fmtPct(totalDone,totalTarget);
+
+  let obrigCards='';
+  Object.entries(inf.obligations).forEach(([type,target])=>{
+    if(target===0)return;
+    const done=counts[type];const p=fmtPct(done,target);const col=barColor(p);
+    obrigCards+=`
+    <div class="obrig-card">
+      <div class="obrig-card-hdr">
+        <span class="obrig-type" style="color:${col}">${TYPE_LABEL[type]}</span>
+        <span class="obrig-target">Meta: ${target}</span>
+      </div>
+      <div class="big-count" style="color:${col}">${done}</div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${Math.min(100,p)}%;background:${col}"></div></div>
+      <button class="reg-btn" onclick="openRegModal('${type}')">+ Registrar ${TYPE_LABEL[type]}</button>
+    </div>`;
+  });
+
+  // sort entries by date desc
+  const sortedEntries=[...entries].reverse();
+  let rows='';
+  if(sortedEntries.length===0){
+    rows=`<tr><td colspan="6"><div class="empty-sub">Nenhuma entrega registrada ainda.</div></td></tr>`;
+  } else {
+    sortedEntries.forEach(([fbKey,s])=>{
+      const col=TYPE_COLOR[s.type]||'#666';
+      rows+=`
+      <tr>
+        <td><span class="type-badge" style="color:${col};border-color:${col}">${TYPE_LABEL[s.type]}</span></td>
+        <td class="link-cell">${s.link?`<a href="${s.link}" target="_blank">${s.link}</a>`:'<span style="color:var(--muted)">—</span>'}</td>
+        <td>${s.imgData?`<img class="img-thumb" src="${s.imgData}" onclick="openLightboxDirect('${s.imgData}')">`:'—'}</td>
+        <td style="font-size:12px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis">${s.note||'—'}</td>
+        <td class="date-cell">${s.date}</td>
+        <td><button class="del-btn" onclick="deleteEntry('${id}','${fbKey}')">✕</button></td>
+      </tr>`;
+    });
+  }
+
+  document.getElementById('inf-main').innerHTML=`
+  <div class="inf-hero">
+    <div class="inf-hero-name">${inf.name.toUpperCase()}</div>
+    <div class="inf-hero-deal">
+      ${inf.fixo?`<div class="deal-tag fixo">FIXO: ${fmtMoney(inf.fixo)}</div>`:''}
+      <div class="deal-tag cpa">CPA R$${inf.cpa} · BASE R$${inf.baseline} · TRIG R$${inf.trigger}</div>
+    </div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-card"><div class="lbl">Entregas Feitas</div><div class="val yellow">${totalDone}</div></div>
+    <div class="stat-card"><div class="lbl">Meta Total</div><div class="val">${totalTarget}</div></div>
+    <div class="stat-card"><div class="lbl">Conclusão</div><div class="val ${pct>=80?'green':pct>=50?'yellow':'red'}">${pct}%</div></div>
+    <div class="stat-card"><div class="lbl">Registros</div><div class="val blue">${subs.length}</div></div>
+  </div>
+  <div class="obrig-grid">${obrigCards}</div>
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:5px;padding:20px">
+    <div class="section-head">Histórico de Entregas</div>
+    <div style="overflow-x:auto">
+    <table class="sub-table">
+      <thead><tr><th>Tipo</th><th>Link</th><th>Print</th><th>Obs</th><th>Data</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+  </div>`;
+}
+
+/* ══════════════════════════════════════
+   ADMIN TABS
+══════════════════════════════════════ */
+function adminTab(btn,tab){
+  currentAdminTab=tab;
+  document.querySelectorAll('.sidebar-item').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAdminTab(tab);
+}
+function renderAdminTab(tab){
+  const m=document.getElementById('admin-main');
+  if(tab==='projetos')     renderProjetos(m);
+  else if(tab==='entregas')      renderEntregas(m);
+  else if(tab==='influenciadores')renderInfluenciadores(m);
+  else if(tab==='relatorios')    renderRelatorios(m);
+}
+
+/* ── PROJETOS ── */
+function renderProjetos(m){
+  let totalFixed=0,totalSubsCount=0,totalDoneAll=0,totalTargetAll=0;
+  Object.entries(INFLUENCERS).forEach(([id,inf])=>{
+    if(inf.fixo)totalFixed+=inf.fixo;
+    totalSubsCount+=getSubs(id).length;
+    const counts=getCounts(id);
+    Object.keys(inf.obligations).forEach(t=>{totalDoneAll+=counts[t];totalTargetAll+=inf.obligations[t];});
+  });
+  const gp=fmtPct(totalDoneAll,totalTargetAll);
+
+  let cards='';
+  Object.entries(INFLUENCERS).forEach(([id,inf])=>{
+    const counts=getCounts(id);
+    let bars='';
+    Object.entries(inf.obligations).forEach(([type,target])=>{
+      if(target===0)return;
+      const done=counts[type];const p=Math.min(100,fmtPct(done,target));
+      bars+=`<div class="mini-bar-row">
+        <span class="mini-bar-lbl">${TYPE_LABEL[type]}</span>
+        <div class="mini-bar-track"><div class="mini-bar-fill" style="width:${p}%;background:${barColor(p)}"></div></div>
+        <span class="mini-bar-count">${done}/${target}</span>
+      </div>`;
+    });
+    const td=Object.values(counts).reduce((a,b)=>a+b,0);
+    const tt=Object.values(inf.obligations).reduce((a,b)=>a+b,0);
+    const pp=fmtPct(td,tt);
+    cards+=`
+    <div class="proj-card" onclick="goToEntregas('${id}')">
+      <div class="proj-card-top">
+        <div class="proj-name">${inf.name.toUpperCase()}</div>
+        <div>
+          <div class="proj-fixo">${fmtMoney(inf.fixo)}</div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:${barColor(pp)};margin-top:4px">${pp}% concluído</div>
+        </div>
+      </div>
+      <div class="proj-body"><div class="mini-bars">${bars}</div></div>
+      <div class="proj-footer">
+        <span class="proj-chip">CPA <b>R$${inf.cpa}</b></span>
+        <span class="proj-chip">BASE <b>R$${inf.baseline}</b></span>
+        <span class="proj-chip">TRIG <b>R$${inf.trigger}</b></span>
+        <span class="proj-chip" style="margin-left:auto">${getSubs(id).length} entregas</span>
+      </div>
+    </div>`;
+  });
+
+  m.innerHTML=`
+  <div class="page-title">PROJETOS</div>
+  <div class="page-sub">Visão geral em tempo real · <span class="sync-dot"></span> Firebase sincronizado</div>
+  <div class="admin-kpis">
+    <div class="kpi-card"><div class="kpi-lbl">Influenciadores</div><div class="kpi-val" style="color:var(--red)">${Object.keys(INFLUENCERS).length}</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Total Fixo</div><div class="kpi-val" style="color:var(--yellow)">${fmtMoney(totalFixed)}</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Entregas Reg.</div><div class="kpi-val" style="color:var(--blue)">${totalSubsCount}</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Conclusão Geral</div><div class="kpi-val" style="color:${barColor(gp)}">${gp}%</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Entregas Feitas</div><div class="kpi-val" style="color:var(--green)">${totalDoneAll}</div></div>
+    <div class="kpi-card"><div class="kpi-lbl">Meta Total</div><div class="kpi-val">${totalTargetAll}</div></div>
+  </div>
+  <div class="proj-grid">${cards}</div>`;
+}
+
+function goToEntregas(id){
+  currentAdminTab='entregas';
+  document.querySelectorAll('.sidebar-item').forEach((b,i)=>{b.classList.remove('active');if(i===1)b.classList.add('active');});
+  renderEntregas(document.getElementById('admin-main'),id);
+}
+
+/* ── ENTREGAS ── */
+function renderEntregas(m, filterInf='', filterType=''){
+  let allEntries=[];
+  Object.entries(INFLUENCERS).forEach(([id,inf])=>{
+    getSubEntries(id).forEach(([fbKey,s])=>{
+      allEntries.push({...s,infId:id,infName:inf.name,fbKey});
+    });
+  });
+  allEntries.sort((a,b)=>b.ts-a.ts);
+
+  let infOpts='<option value="">Todos</option>';
+  Object.entries(INFLUENCERS).forEach(([id,inf])=>{
+    infOpts+=`<option value="${id}" ${filterInf===id?'selected':''}>${inf.name}</option>`;
+  });
+
+  let filtered=[...allEntries];
+  if(filterInf)filtered=filtered.filter(s=>s.infId===filterInf);
+  if(filterType)filtered=filtered.filter(s=>s.type===filterType);
+
+  let rows='';
+  if(filtered.length===0){
+    rows=`<tr><td colspan="7"><div class="empty-sub">Nenhuma entrega encontrada.</div></td></tr>`;
+  } else {
+    filtered.forEach(s=>{
+      const col=TYPE_COLOR[s.type]||'#666';
+      const imgSafe=s.imgData?s.imgData.replace(/'/g,"\\'"):'';
+      rows+=`
+      <tr>
+        <td style="font-weight:500">${s.infName}</td>
+        <td><span class="type-badge" style="color:${col};border-color:${col}">${TYPE_LABEL[s.type]}</span></td>
+        <td class="link-cell">${s.link?`<a href="${s.link}" target="_blank">${s.link}</a>`:'—'}</td>
+        <td>${s.imgData?`<img class="img-thumb" src="${s.imgData}" onclick="openLightboxDirect('${imgSafe}')">`:'—'}</td>
+        <td style="font-size:12px;color:var(--muted);max-width:140px;overflow:hidden;text-overflow:ellipsis">${s.note||'—'}</td>
+        <td class="date-cell">${s.date}</td>
+        <td><button class="del-btn" onclick="deleteEntry('${s.infId}','${s.fbKey}')">✕</button></td>
+      </tr>`;
+    });
+  }
+
+  m.innerHTML=`
+  <div class="page-title">ENTREGAS</div>
+  <div class="page-sub">Todas as entregas em tempo real · ${filtered.length} resultado(s)</div>
+  <div class="filter-bar">
+    <select class="filter-select" id="fInf" onchange="renderEntregas(document.getElementById('admin-main'),this.value,document.getElementById('fType').value)">
+      ${infOpts}
+    </select>
+    <select class="filter-select" id="fType" onchange="renderEntregas(document.getElementById('admin-main'),document.getElementById('fInf').value,this.value)">
+      <option value="">Todos os tipos</option>
+      <option value="story">Stories</option><option value="reel">Reels</option>
+      <option value="whatsapp">WhatsApp</option><option value="telegram">Telegram</option>
+    </select>
+    <button class="export-btn" onclick="exportCSV()">↓ EXPORTAR CSV</button>
+  </div>
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:5px;padding:20px;overflow-x:auto">
+  <table class="sub-table">
+    <thead><tr><th>Influenciador</th><th>Tipo</th><th>Link</th><th>Print</th><th>Obs</th><th>Data</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+
+  if(filterInf)document.getElementById('fInf').value=filterInf;
+  if(filterType)document.getElementById('fType').value=filterType;
+}
+
+/* ── INFLUENCIADORES ── */
+function renderInfluenciadores(m){
+  let rows='';
+  Object.entries(INFLUENCERS).forEach(([id,inf])=>{
+    const counts=getCounts(id);
+    const done=Object.values(counts).reduce((a,b)=>a+b,0);
+    const target=Object.values(inf.obligations).reduce((a,b)=>a+b,0);
+    const pct=fmtPct(done,target);
+    rows+=`
+    <tr>
+      <td style="font-weight:600">${inf.name}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--yellow)">${fmtMoney(inf.fixo)}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">R$${inf.cpa}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-size:11px">${inf.obligations.story}/${inf.obligations.reel}/${inf.obligations.whatsapp}/${inf.obligations.telegram}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:80px;height:4px;background:var(--border);border-radius:2px">
+            <div style="width:${Math.min(100,pct)}%;height:100%;background:${barColor(pct)};border-radius:2px"></div>
+          </div>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:${barColor(pct)}">${pct}%</span>
+        </div>
+      </td>
+      <td>
+        <button class="edit-btn" onclick="openEdit('${id}')">EDITAR</button>
+        <button class="pw-btn" onclick="showPw('${id}')">SENHA</button>
+      </td>
+    </tr>`;
+  });
+
+  m.innerHTML=`
+  <div class="page-title">INFLUENCIADORES</div>
+  <div class="page-sub">Gerencie deals, metas e senhas · alterações salvas em tempo real</div>
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:5px;padding:20px;overflow-x:auto">
+  <table class="manage-table">
+    <thead><tr><th>Nome</th><th>Fixo</th><th>CPA</th><th>Story/Reel/WA/TG</th><th>Progresso</th><th>Ações</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+}
+
+function openEdit(id){
+  editingId=id;
+  const inf=INFLUENCERS[id];
+  document.getElementById('eName').value=inf.name;
+  document.getElementById('eFixo').value=inf.fixo||'';
+  document.getElementById('eCpa').value=inf.cpa;
+  document.getElementById('eBase').value=inf.baseline;
+  document.getElementById('eTrig').value=inf.trigger;
+  document.getElementById('eStory').value=inf.obligations.story;
+  document.getElementById('eReel').value=inf.obligations.reel;
+  document.getElementById('eWa').value=inf.obligations.whatsapp;
+  document.getElementById('eTg').value=inf.obligations.telegram;
+  document.getElementById('ePass').value='';
+  document.getElementById('modalEdit').classList.add('open');
+}
+
+async function saveEdit(){
+  const inf=INFLUENCERS[editingId];
+  const updated={
+    ...inf,
+    name: document.getElementById('eName').value||inf.name,
+    fixo: parseInt(document.getElementById('eFixo').value)||null,
+    cpa:  parseInt(document.getElementById('eCpa').value)||inf.cpa,
+    baseline:parseInt(document.getElementById('eBase').value)||inf.baseline,
+    trigger: parseInt(document.getElementById('eTrig').value)||inf.trigger,
+    obligations:{
+      story:   parseInt(document.getElementById('eStory').value)||0,
+      reel:    parseInt(document.getElementById('eReel').value)||0,
+      whatsapp:parseInt(document.getElementById('eWa').value)||0,
+      telegram:parseInt(document.getElementById('eTg').value)||0,
+    }
+  };
+  await window._set(window._ref(window._db,`influencers/${editingId}`),updated);
+  const np=document.getElementById('ePass').value;
+  if(np) await window._set(window._ref(window._db,`passwords/${editingId}`),np);
+  closeModal('modalEdit');
+  showToast('Salvo no Firebase!');
+}
+
+function showPw(id){
+  alert(`Senha atual de ${INFLUENCERS[id].name}: ${PASSWORDS[id]}\n\nPara alterar, use o botão EDITAR.`);
+}
+
+/* ── RELATÓRIOS ── */
+function renderRelatorios(m){
+  m.innerHTML=`
+  <div class="page-title">RELATÓRIOS</div>
+  <div class="page-sub">Exporte dados para análise</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">
+    ${rCard('CSV Completo','Todas as entregas de todos os influenciadores','exportCSV()')}
+    ${rCard('Resumo por Influenciador','Metas vs. entregas por influenciador','exportResumo()')}
+    ${rCard('Somente com Links','Entregas que têm link de publicação','exportComLinks()')}
+    ${rCard('Somente com Prints','Entregas que têm screenshot','exportComPrints()')}
+  </div>`;
+}
+function rCard(t,d,a){return`
+  <div style="background:var(--s1);border:1px solid var(--border);border-radius:5px;padding:24px">
+    <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:8px">${t}</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:20px">${d}</div>
+    <button class="export-btn" style="margin-left:0;width:100%;text-align:center" onclick="${a}">↓ EXPORTAR CSV</button>
+  </div>`;}
+
+/* ══════════════════════════════════════
+   REGISTRATION
+══════════════════════════════════════ */
+function openRegModal(type){
+  regType=type;
+  document.getElementById('mType').value=type;
+  document.getElementById('mLink').value='';
+  document.getElementById('mNote').value='';
+  document.getElementById('mImg').value='';
+  document.getElementById('mImgPreview').style.display='none';
+  document.getElementById('mImgPreview').src='';
+  document.getElementById('modalRegTitle').textContent=`REGISTRAR — ${TYPE_LABEL[type]}`;
+  document.getElementById('modalReg').classList.add('open');
+}
+
+function previewModalImg(){
+  const f=document.getElementById('mImg').files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{const img=document.getElementById('mImgPreview');img.src=e.target.result;img.style.display='block';};
+  r.readAsDataURL(f);
+}
+
+async function saveEntry(){
+  const type=document.getElementById('mType').value;
+  const link=document.getElementById('mLink').value.trim();
+  const note=document.getElementById('mNote').value.trim();
+  const imgEl=document.getElementById('mImgPreview');
+  const imgData=imgEl.style.display!=='none'&&imgEl.src?imgEl.src:null;
+
+  const entry={type,link,note,imgData,date:nowStr(),ts:Date.now()};
+  const subsRef=window._ref(window._db,`submissions/${currentUser}`);
+  await window._push(subsRef,entry);
+
+  closeModal('modalReg');
+  showToast('Entrega registrada! ✓');
+}
+
+/* ══════════════════════════════════════
+   DELETE
+══════════════════════════════════════ */
+async function deleteEntry(infId,fbKey){
+  if(!confirm('Remover esta entrega?'))return;
+  await window._remove(window._ref(window._db,`submissions/${infId}/${fbKey}`));
+  showToast('Entrega removida.');
+}
+
+/* ══════════════════════════════════════
+   LIGHTBOX
+══════════════════════════════════════ */
+function openLightboxDirect(src){
+  document.getElementById('lightboxImg').src=src;
+  document.getElementById('lightbox').classList.add('open');
+}
+
+/* ══════════════════════════════════════
+   EXPORT CSV
+══════════════════════════════════════ */
+function toCSV(rows,headers){
+  const esc=v=>`"${String(v||'').replace(/"/g,'""')}"`;
+  return[headers.map(esc).join(','),...rows.map(r=>r.map(esc).join(','))].join('\n');
+}
+function dlCSV(csv,name){
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();
+}
+function allSubRows(){
+  const rows=[];
+  Object.entries(INFLUENCERS).forEach(([id,inf])=>{
+    getSubs(id).forEach(s=>rows.push([inf.name,TYPE_LABEL[s.type],s.link,s.note,s.imgData?'SIM':'NÃO',s.date]));
+  });
+  return rows;
+}
+function exportCSV(){dlCSV(toCSV(allSubRows(),['Influenciador','Tipo','Link','Obs','Tem Print','Data']),'betano_entregas.csv');showToast('CSV exportado!');}
+function exportResumo(){
+  const rows=[];
+  Object.entries(INFLUENCERS).forEach(([id,inf])=>{
+    const c=getCounts(id);
+    rows.push([inf.name,fmtMoney(inf.fixo),c.story,inf.obligations.story,c.reel,inf.obligations.reel,c.whatsapp,inf.obligations.whatsapp,c.telegram,inf.obligations.telegram,getSubs(id).length]);
+  });
+  dlCSV(toCSV(rows,['Influenciador','Fixo','Stories','Meta S','Reels','Meta R','WA','Meta WA','TG','Meta TG','Total']),'betano_resumo.csv');showToast('Resumo exportado!');
+}
+function exportComLinks(){
+  const rows=[];
+  Object.entries(INFLUENCERS).forEach(([id,inf])=>{getSubs(id).filter(s=>s.link).forEach(s=>rows.push([inf.name,TYPE_LABEL[s.type],s.link,s.date]));});
+  dlCSV(toCSV(rows,['Influenciador','Tipo','Link','Data']),'betano_links.csv');showToast('Exportado!');
+}
+function exportComPrints(){
+  const rows=[];
+  Object.entries(INFLUENCERS).forEach(([id,inf])=>{getSubs(id).filter(s=>s.imgData).forEach(s=>rows.push([inf.name,TYPE_LABEL[s.type],s.link||'',s.date]));});
+  dlCSV(toCSV(rows,['Influenciador','Tipo','Link','Data']),'betano_prints.csv');showToast('Exportado!');
+}
+
+/* MODAL CLOSE ON OVERLAY CLICK */
+document.getElementById('modalReg').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('modalReg');});
+document.getElementById('modalEdit').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal('modalEdit');});
+</script>
+
+<!--
+═══════════════════════════════════════════════════════════════
+  🔥 GUIA DE CONFIGURAÇÃO FIREBASE — PASSO A PASSO
+═══════════════════════════════════════════════════════════════
+
+PASSO 1 — Criar projeto Firebase
+  1. Acesse: https://console.firebase.google.com
+  2. Clique em "Adicionar projeto"
+  3. Dê um nome (ex: betano-deals) e clique em Continuar
+  4. Pode desativar o Google Analytics (não é necessário)
+  5. Clique em "Criar projeto"
+
+PASSO 2 — Ativar Realtime Database
+  1. No menu lateral, clique em "Realtime Database"
+  2. Clique em "Criar banco de dados"
+  3. Escolha a região (pode deixar a padrão)
+  4. Em "Regras de segurança", escolha "Iniciar no modo de teste"
+     (permite leitura/escrita sem autenticação por 30 dias)
+  5. Clique em "Ativar"
+
+PASSO 3 — Pegar as credenciais
+  1. No menu lateral, clique na engrenagem ⚙️ > "Configurações do projeto"
+  2. Em "Seus apps", clique no ícone </> (Web)
+  3. Dê um nome ao app (ex: betano-web) e clique em "Registrar app"
+  4. O Firebase vai mostrar um bloco assim:
+
+     const firebaseConfig = {
+       apiKey: "AIza...",
+       authDomain: "betano-deals.firebaseapp.com",
+       databaseURL: "https://betano-deals-default-rtdb.firebaseio.com",
+       projectId: "betano-deals",
+       storageBucket: "betano-deals.appspot.com",
+       messagingSenderId: "123456789",
+       appId: "1:123456789:web:abc123"
+     };
+
+PASSO 4 — Colar no arquivo
+  1. Abra este arquivo HTML em qualquer editor de texto
+  2. Encontre o bloco marcado com ▼▼▼ COLE AQUI ▼▼▼
+  3. Substitua cada "COLE_SUA_..." pelo valor correspondente
+  4. Salve o arquivo
+
+PASSO 5 — Publicar no GitHub Pages
+  1. Faça upload do arquivo no GitHub (repositório público ou privado)
+  2. Vá em Settings > Pages > Branch: main, Pasta: / (root)
+  3. Salve — em ~1 minuto o link estará disponível
+
+PASSO 6 — Estender regras do banco (após 30 dias)
+  No console Firebase > Realtime Database > Regras, cole:
+  {
+    "rules": {
+      ".read": true,
+      ".write": true
+    }
+  }
+  (Para produção real, recomenda-se configurar autenticação Firebase)
+
+═══════════════════════════════════════════════════════════════
+-->
+</html>
